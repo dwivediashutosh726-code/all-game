@@ -1,0 +1,203 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ultimate Car Racing</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+ background:#101522;color:white;
+ font-family:Arial,sans-serif;
+ text-align:center;overflow:hidden;
+}
+h1{padding:12px;color:#00e5ff}
+#game{
+ width:100%;max-width:420px;height:75vh;
+ min-height:400px;margin:auto;
+ position:relative;overflow:hidden;
+ background:#333;
+ border:4px solid #00e5ff;
+}
+.road{
+ position:absolute;width:100%;height:100%;
+ background:repeating-linear-gradient(
+  to bottom,#444 0px,#444 55px,#fff 55px,
+  #fff 85px,#444 85px,#444 140px
+ );
+ background-size:100% 140px;
+ animation:moveRoad .45s linear infinite;
+}
+@keyframes moveRoad{
+ to{background-position:0 140px}
+}
+.car{
+ position:absolute;width:48px;height:82px;
+ bottom:15px;border-radius:12px;
+ background:linear-gradient(90deg,#ff1744,#ff8a80,#d50000);
+ border:3px solid white;
+ box-shadow:0 0 15px #ff1744;
+}
+.car:before{
+ content:"";position:absolute;
+ width:28px;height:32px;left:7px;top:12px;
+ background:#9be7ff;border-radius:7px;
+}
+.car:after{
+ content:"";position:absolute;
+ width:30px;height:10px;left:6px;bottom:8px;
+ background:#222;border-radius:4px;
+}
+.enemy{
+ position:absolute;width:48px;height:82px;
+ background:linear-gradient(90deg,#1565c0,#42a5f5);
+ border:3px solid white;border-radius:12px;
+}
+#score{
+ padding:12px;font-size:22px;color:#00ff9d;
+}
+.controls{padding:12px}
+button{
+ padding:14px 28px;margin:5px;
+ font-size:20px;font-weight:bold;
+ border:0;border-radius:12px;
+ background:#00e5ff;color:#101522;
+ cursor:pointer;
+}
+#over{
+ display:none;position:absolute;inset:0;
+ background:#000d;z-index:5;
+ align-items:center;justify-content:center;
+ flex-direction:column;gap:15px;
+}
+#over h2{font-size:35px;color:#ff5252}
+</style>
+</head>
+<body>
+
+<h1>🏎️ Ultimate Racing</h1>
+<div id="score">Score: 0</div>
+
+<div id="game">
+ <div class="road"></div>
+ <div class="car" id="player"></div>
+
+ <div id="over">
+  <h2>GAME OVER!</h2>
+  <h3 id="final"></h3>
+  <button onclick="restart()">PLAY AGAIN</button>
+ </div>
+</div>
+
+<div class="controls">
+ <button onclick="left()">⬅ LEFT</button>
+ <button onclick="right()">RIGHT ➡</button>
+</div>
+
+<script>
+const game=document.getElementById("game");
+const player=document.getElementById("player");
+const scoreText=document.getElementById("score");
+const over=document.getElementById("over");
+
+let lane=1;
+let score=0;
+let speed=4;
+let enemies=[];
+let running=true;
+let spawnTimer=0;
+
+const lanes=[55,185,315];
+
+function setPlayer(){
+ player.style.left=lanes[lane]+"px";
+ player.style.transform="translateX(-50%)";
+}
+
+function left(){
+ if(running && lane>0){lane--;setPlayer()}
+}
+function right(){
+ if(running && lane<2){lane++;setPlayer()}
+}
+
+document.addEventListener("keydown",e=>{
+ if(e.key==="ArrowLeft")left();
+ if(e.key==="ArrowRight")right();
+});
+
+let touchStart=0;
+game.addEventListener("touchstart",e=>{
+ touchStart=e.touches[0].clientX;
+});
+game.addEventListener("touchend",e=>{
+ let diff=e.changedTouches[0].clientX-touchStart;
+ if(diff>25)right();
+ if(diff< -25)left();
+});
+
+function spawnEnemy(){
+ let el=document.createElement("div");
+ el.className="enemy";
+ let l=Math.floor(Math.random()*3);
+ el.style.left=lanes[l]+"px";
+ el.style.transform="translateX(-50%)";
+ el.style.top="-100px";
+ game.appendChild(el);
+ enemies.push({el,lane:l,y:-100});
+}
+
+function endGame(){
+ running=false;
+ over.style.display="flex";
+ document.getElementById("final").innerText=
+ "Your Score: "+score;
+}
+
+function restart(){
+ enemies.forEach(e=>e.el.remove());
+ enemies=[];
+ score=0;speed=4;lane=1;
+ spawnTimer=0;
+ running=true;
+ over.style.display="none";
+ setPlayer();
+ scoreText.innerText="Score: 0";
+}
+
+function update(){
+ if(!running)return;
+
+ spawnTimer++;
+ if(spawnTimer>65){
+  spawnEnemy();
+  spawnTimer=0;
+ }
+
+ enemies.forEach((e,i)=>{
+  e.y+=speed;
+  e.el.style.top=e.y+"px";
+
+  if(e.lane===lane && e.y>game.clientHeight-115 &&
+     e.y<game.clientHeight-25){
+    endGame();
+  }
+
+  if(e.y>game.clientHeight){
+   e.el.remove();
+   enemies.splice(i,1);
+   score+=10;
+   scoreText.innerText="Score: "+score;
+   if(score%100===0)speed+=0.5;
+  }
+ });
+
+ requestAnimationFrame(update);
+}
+
+setPlayer();
+update();
+</script>
+</body>
+</html>
